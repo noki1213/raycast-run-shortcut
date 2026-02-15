@@ -1,0 +1,5 @@
+# 依存パッケージ（npm install で再取得できるのでアップロード不要）
+node_modules/
+
+# ビルド成果物
+dist/
