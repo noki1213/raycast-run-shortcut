@@ -3,3 +3,5 @@ node_modules/
 
 # ビルド成果物
 dist/
+.claude/
+agent-log/
