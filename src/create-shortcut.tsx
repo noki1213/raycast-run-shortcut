@@ -1,4 +1,4 @@
-// Create Shortcut - 新しいショートカットを登録
+// Create Shortcut - register a new shortcut
 
 import {
   Action,
@@ -24,12 +24,12 @@ export default function CreateShortcut() {
   const [modifiers, setModifiers] = useState<ModifierKey[]>([]);
   const [description, setDescription] = useState("");
 
-  // アプリ一覧
+  // App list
   const [runningApps, setRunningApps] = useState<string[]>([]);
   const [installedApps, setInstalledApps] = useState<string[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(true);
 
-  // アプリ一覧を取得
+  // Load the app list
   useEffect(() => {
     async function loadApps() {
       setIsLoadingApps(true);
@@ -38,7 +38,7 @@ export default function CreateShortcut() {
         getInstalledApps(),
       ]);
       setRunningApps(running);
-      // インストール済みから起動中を除外（重複を避ける）
+      // Drop running apps from the installed list to avoid duplicates
       const installedOnly = installed.filter((a) => !running.includes(a));
       setInstalledApps(installedOnly);
       setIsLoadingApps(false);
@@ -46,7 +46,7 @@ export default function CreateShortcut() {
     loadApps();
   }, []);
 
-  // バリデーション
+  // Validation
   const [nameError, setNameError] = useState<string | undefined>();
   const [appError, setAppError] = useState<string | undefined>();
   const [keyError, setKeyError] = useState<string | undefined>();
@@ -101,7 +101,7 @@ export default function CreateShortcut() {
   }
 
   async function handleSubmit() {
-    // 最終バリデーション
+    // Final validation
     if (!name.trim() || !app || !key.trim() || modifiers.length === 0) {
       await showToast({
         style: Toast.Style.Failure,
@@ -118,7 +118,7 @@ export default function CreateShortcut() {
       isGlobal,
       keys: {
         modifiers,
-        key: key.trim().toLowerCase(), // 自動で小文字に変換
+        key: key.trim().toLowerCase(), // normalized to lowercase
       },
       description: description.trim() || undefined,
       createdAt: new Date().toISOString(),

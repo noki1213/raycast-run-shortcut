@@ -1,4 +1,4 @@
-// Search Shortcuts - ショートカットを検索して実行
+// Search Shortcuts - find and run a shortcut
 
 import {
   Action,
@@ -19,7 +19,7 @@ export default function SearchShortcuts() {
   const [isLoading, setIsLoading] = useState(true);
   const [frontmostApp, setFrontmostApp] = useState<string>("");
 
-  // ショートカット一覧と現在のアプリを取得
+  // Load the shortcut list and the frontmost app
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
@@ -34,7 +34,7 @@ export default function SearchShortcuts() {
     loadData();
   }, []);
 
-  // ショートカットを実行
+  // Run a shortcut
   async function handleRun(shortcut: Shortcut) {
     try {
       await runShortcut(shortcut);
@@ -48,7 +48,7 @@ export default function SearchShortcuts() {
     }
   }
 
-  // ショートカットを削除
+  // Delete a shortcut
   async function handleDelete(shortcut: Shortcut) {
     await deleteShortcut(shortcut.id);
     setShortcuts(shortcuts.filter((s) => s.id !== shortcut.id));
@@ -59,7 +59,7 @@ export default function SearchShortcuts() {
     });
   }
 
-  // ショートカットをカテゴリ別にグループ化
+  // Group shortcuts by app
   function groupByApp(shortcuts: Shortcut[]): Map<string, Shortcut[]> {
     const grouped = new Map<string, Shortcut[]>();
 
@@ -74,17 +74,17 @@ export default function SearchShortcuts() {
     return grouped;
   }
 
-  // セクションの順序を決定（現在のアプリ → その他アルファベット順）
+  // Order the sections: frontmost app first, then the rest alphabetically
   function getSortedSections(grouped: Map<string, Shortcut[]>): string[] {
     const apps = Array.from(grouped.keys());
     const sorted: string[] = [];
 
-    // 1. 現在アクティブなアプリ
+    // 1. The frontmost app
     if (frontmostApp && apps.includes(frontmostApp)) {
       sorted.push(frontmostApp);
     }
 
-    // 2. その他（アルファベット順）
+    // 2. Everything else, alphabetically
     const remaining = apps
       .filter((app) => app !== frontmostApp)
       .sort();

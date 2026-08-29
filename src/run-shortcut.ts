@@ -1,4 +1,4 @@
-// キーストロークを送信する関数
+// Helpers for sending keystrokes
 
 import { exec } from "child_process";
 import { promisify } from "util";
@@ -6,7 +6,7 @@ import { Shortcut, ModifierKey } from "./types";
 
 const execAsync = promisify(exec);
 
-// ModifierKey を AppleScript のモディファイア形式に変換
+// Convert a ModifierKey into AppleScript's modifier format
 function getAppleScriptModifier(modifier: ModifierKey): string {
   const mapping: Record<ModifierKey, string> = {
     cmd: "command down",
@@ -17,60 +17,60 @@ function getAppleScriptModifier(modifier: ModifierKey): string {
   return mapping[modifier];
 }
 
-// キー名からキーコードを取得（Electronアプリなどkeystrokeが効かない場合に必要）
+// Look up a key code by key name (needed where keystroke has no effect, such as Electron apps)
 function getKeyCode(key: string): number | null {
   const keyCodes: Record<string, number> = {
-    // アルファベット
+    // Letters
     a: 0, b: 11, c: 8, d: 2, e: 14, f: 3, g: 5, h: 4, i: 34, j: 38,
     k: 40, l: 37, m: 46, n: 45, o: 31, p: 35, q: 12, r: 15, s: 1,
     t: 17, u: 32, v: 9, w: 13, x: 7, y: 16, z: 6,
-    // 数字
+    // Digits
     "0": 29, "1": 18, "2": 19, "3": 20, "4": 21, "5": 23, "6": 22, "7": 26, "8": 28, "9": 25,
-    // 特殊キー
+    // Special keys
     space: 49, enter: 36, return: 36, tab: 48, escape: 53, esc: 53,
     delete: 51, backspace: 51, forwarddelete: 117,
     up: 126, down: 125, left: 123, right: 124,
     home: 115, end: 119, pageup: 116, pagedown: 121,
     f1: 122, f2: 120, f3: 99, f4: 118, f5: 96, f6: 97, f7: 98, f8: 100,
     f9: 101, f10: 109, f11: 103, f12: 111, f13: 105, f14: 107, f15: 113,
-    // 記号
+    // Symbols
     "-": 27, "=": 24, "[": 33, "]": 30, "\\": 42, ";": 41, "'": 39,
     ",": 43, ".": 47, "/": 44, "`": 50,
   };
   return keyCodes[key.toLowerCase()] ?? null;
 }
 
-// キーストロークを送信
+// Send a keystroke
 export async function runShortcut(shortcut: Shortcut): Promise<void> {
   const modifiers = shortcut.keys.modifiers.map(getAppleScriptModifier).join(", ");
   const key = shortcut.keys.key;
   const app = shortcut.app;
   const keyCode = getKeyCode(key);
 
-  // AppleScript を使ってキーストロークを送信
-  // isGlobal: true → 現在のアプリにそのままキーを送信
-  // isGlobal: false → 指定アプリに切り替えてからキーを送信
+  // Send the keystroke through AppleScript
+  // isGlobal: true sends the key to the frontmost app as is
+  // isGlobal: false switches to the target app first, then sends the key
   let script: string;
 
-  // key code が取得できた場合は key code を使用（Electronアプリ対策）
-  // 取得できない場合は keystroke にフォールバック
+  // Prefer key code when one is available; it also works with Electron apps
+  // Fall back to keystroke when there is no key code
   const keyCommand = keyCode !== null
     ? `key code ${keyCode} using {${modifiers}}`
     : `keystroke "${key}" using {${modifiers}}`;
 
   if (shortcut.isGlobal) {
-    // Global：アプリ切り替えなし、現在のアプリにキーを送信
+    // Global: no app switching, send the key to the frontmost app
     script = `
       tell application "System Events"
         ${keyCommand}
       end tell
     `;
   } else {
-    // アプリ指定：そのアプリをアクティブにしてからキーを送信
+    // Targeted: activate the app first, then send the key
     script = `
       tell application "${app}" to activate
 
-      -- アプリが最前面に来るまで待機（最大2秒）
+      -- Wait until the app comes to the front (up to 2 seconds)
       repeat with i from 1 to 20
         if frontmost of application "${app}" is true then exit repeat
         delay 0.1
@@ -93,7 +93,7 @@ export async function runShortcut(shortcut: Shortcut): Promise<void> {
   }
 }
 
-// 現在アクティブなアプリ名を取得
+// Get the name of the frontmost app
 export async function getFrontmostApp(): Promise<string> {
   const script = `
     tell application "System Events"
@@ -109,7 +109,7 @@ export async function getFrontmostApp(): Promise<string> {
   }
 }
 
-// 起動中のアプリ一覧を取得
+// List the running apps
 export async function getRunningApps(): Promise<string[]> {
   const script = `
     tell application "System Events"
@@ -119,8 +119,8 @@ export async function getRunningApps(): Promise<string[]> {
 
   try {
     const { stdout } = await execAsync(`osascript -e '${script}'`);
-    // AppleScriptの出力は "App1, App2, App3" 形式
-    // Set を使って重複を除去
+    // AppleScript returns them as "App1, App2, App3"
+    // Deduplicate with a Set
     const apps = [...new Set(
       stdout
         .trim()
@@ -133,10 +133,10 @@ export async function getRunningApps(): Promise<string[]> {
   }
 }
 
-// /Applications からインストール済みアプリ一覧を取得
+// List installed apps from /Applications
 export async function getInstalledApps(): Promise<string[]> {
   try {
-    // /Applications と ~/Applications の両方から .app を探す
+    // Look for .app bundles in both /Applications and ~/Applications
     const { stdout } = await execAsync(
       `find /Applications ~/Applications -maxdepth 2 -name "*.app" 2>/dev/null | xargs -I {} basename {} .app | sort -u`
     );
@@ -150,12 +150,12 @@ export async function getInstalledApps(): Promise<string[]> {
   }
 }
 
-// アプリ名からアプリのパスを取得（アイコン表示用）
+// Resolve an app path from its name, used for the icon
 export function getAppIconPath(appName: string): string {
   if (appName === "Global") {
     return "";
   }
-  // システムアプリは別の場所にある
+  // System apps live elsewhere
   const systemApps: Record<string, string> = {
     "Finder": "/System/Library/CoreServices/Finder.app",
     "Safari": "/Applications/Safari.app",
@@ -165,6 +165,6 @@ export function getAppIconPath(appName: string): string {
   if (systemApps[appName]) {
     return systemApps[appName];
   }
-  // /System/Applications も探す (macOS標準アプリ)
+  // Also search /System/Applications for built-in macOS apps
   return `/Applications/${appName}.app`;
 }

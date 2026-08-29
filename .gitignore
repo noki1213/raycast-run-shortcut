@@ -1,7 +1,7 @@
-# 依存パッケージ（npm install で再取得できるのでアップロード不要）
+# Dependencies, restored by npm install
 node_modules/
 
-# ビルド成果物
+# Build output
 dist/
 .claude/
 
